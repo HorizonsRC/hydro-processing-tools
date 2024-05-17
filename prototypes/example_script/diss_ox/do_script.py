@@ -15,16 +15,16 @@ from hydrobot.data_acquisition import (
     import_ncr,
     import_prov_wq,
 )
+from hydrobot.do_processor import DOProcessor
 from hydrobot.filters import trim_series
 from hydrobot.plotter import make_processing_dash
-from hydrobot.processor import Processor
 from hydrobot.utils import merge_all_comments
 
 #######################################################################################
 # Reading configuration from config.yaml
 #######################################################################################
 
-data, ann = Processor.from_config_yaml("DO_config.yaml")
+data, ann = DOProcessor.from_config_yaml("DO_config.yaml")
 
 st.set_page_config(page_title="Hydrobot0.6.0", layout="wide", page_icon="💦")
 st.title(f"{data.site}")
@@ -66,9 +66,6 @@ data.check_data = data.check_data.loc[
     (data.check_data.index >= data.from_date) & (data.check_data.index <= data.to_date)
 ]
 
-for i in [data.check_data, prov_wq, inspections, ncrs]:
-    print(i.empty)
-
 all_comments = merge_all_comments(data.check_data, prov_wq, inspections, ncrs)
 
 #######################################################################################
@@ -85,6 +82,12 @@ data.clip()
 data.remove_spikes()
 
 #######################################################################################
+# DO specific operation
+#######################################################################################
+
+data.correct_do()
+
+#######################################################################################
 # INSERT MANUAL PROCESSING STEPS HERE
 # Remember to add Annalist logging!
 #######################################################################################
@@ -99,8 +102,6 @@ data.remove_spikes()
 #######################################################################################
 # Assign quality codes
 #######################################################################################
-print(data.check_data)
-print("qweqwe")
 data.quality_encoder()
 data.standard_data["Value"] = trim_series(
     data.standard_data["Value"],
